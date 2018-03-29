@@ -239,8 +239,12 @@ public class KeyValueServer extends BlockingProcess {
         String[] msgs = msg.split(" ");
         if(msgs[0].equals("put")){
             putVal(msgs[1], msgs[2]);
+            //TODO:Write to Log file.
+            updateLogFile(this.selfID, msgs[0], msgs[1], "resp", Integer.parseInt(msgs[2]));
         } else if (msgs[0].equals("get")) {
             getVal(msgs[1]);
+            updateLogFile(this.selfID, msgs[0], msgs[1], "resp", -1);
+            //TODO:Write to Log file.
         } else {
             System.out.println("Fatal Error in Delivery!");
         }
@@ -252,9 +256,11 @@ public class KeyValueServer extends BlockingProcess {
             ReadWriteVars.put(Key, 0);
             System.out.println("Setting "+Key+": 0");
             //TODO:Write to Log file.
+            updateLogFile(this.selfID, "get", Key, "req", 0);
         } else{
             System.out.println("Get "+Key+": "+ReadWriteVars.get(Key));
             //TODO:Write to Log file.
+            updateLogFile(this.selfID, "get", Key, "req", ReadWriteVars.get(Key));
         }
     }
 
@@ -263,5 +269,36 @@ public class KeyValueServer extends BlockingProcess {
         ReadWriteVars.put(Key,v);
         System.out.println("Setting "+Key+":"+val);
         //TODO:Write to Log file.
+        updateLogFile(this.selfID, "put", Key, "req", Integer.parseInt(val));
+    }
+
+    private void updateLogFile(int serverID, String OP, String Key, String OPType, int value) {
+        String filename = new String("log" + p.selfID + ".txt");
+        File file = new File(filename);
+        if(!file.exists()) {
+            try {
+                file.createNewFile();
+            } catch(IOException ioe) {
+                ioe.printStackTrace();
+            }
+        }
+        Timestamp timestamp = new Timestamp(System.currentTimeMillis());
+        long t = timestamp.getTime();
+        String str = "555," + serverID + "," + OP + "," + Key + "," + t + "," + OPType;
+        if(OP.equals("put") || (OP.equals("get") && (OPType.equals("resp")))) {
+            str += "," + value;
+        }
+        str += "\r\n";
+        RandomAccessFile randfile = null;
+        try {
+            randfile = new RandomAccessFile(filename, "rw");
+            long fileLength = randfile.length();
+            randfile.seek(fileLength);
+            randfile.writeBytes(str);
+            randfile.close();
+        } catch(IOException ioe) {
+            ioe.printStackTrace();
+        }
+
     }
 }
