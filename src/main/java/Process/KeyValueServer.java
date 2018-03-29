@@ -8,6 +8,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
+import java.sql.Timestamp;
 
 
 public class KeyValueServer extends BlockingProcess {
@@ -185,6 +186,16 @@ public class KeyValueServer extends BlockingProcess {
         oos.flush();
         oos.writeObject(new Message(selfID, addr, new String(msg), 0));
         writeLock.unlock();
+        //TODO: Write LOG FILE REQ
+        String msgstr = new String(msg);
+        String[] msgs = msgstr.split(",");
+        String[] op = msgs[2].split(" ");
+        if(op.length == 2) {
+            updateLogFile(this.selfID, op[0], op[1], "req", -1);
+        } else if(op.length == 3) {
+            updateLogFile(this.selfID, op[0], op[1], "req", Integer.parseInt(op[2]));
+        }
+
         inAck = true;
     }
 
@@ -239,12 +250,8 @@ public class KeyValueServer extends BlockingProcess {
         String[] msgs = msg.split(" ");
         if(msgs[0].equals("put")){
             putVal(msgs[1], msgs[2]);
-            //TODO:Write to Log file.
-            updateLogFile(this.selfID, msgs[0], msgs[1], "resp", Integer.parseInt(msgs[2]));
         } else if (msgs[0].equals("get")) {
             getVal(msgs[1]);
-            updateLogFile(this.selfID, msgs[0], msgs[1], "resp", -1);
-            //TODO:Write to Log file.
         } else {
             System.out.println("Fatal Error in Delivery!");
         }
@@ -256,11 +263,11 @@ public class KeyValueServer extends BlockingProcess {
             ReadWriteVars.put(Key, 0);
             System.out.println("Setting "+Key+": 0");
             //TODO:Write to Log file.
-            updateLogFile(this.selfID, "get", Key, "req", 0);
+            updateLogFile(this.selfID, "get", Key, "resp", 0);
         } else{
             System.out.println("Get "+Key+": "+ReadWriteVars.get(Key));
             //TODO:Write to Log file.
-            updateLogFile(this.selfID, "get", Key, "req", ReadWriteVars.get(Key));
+            updateLogFile(this.selfID, "get", Key, "resp", ReadWriteVars.get(Key));
         }
     }
 
